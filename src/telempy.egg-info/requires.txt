@@ -1,0 +1,3 @@
+salsa20
+marshmallow-dataclass
+marshmallow-enum

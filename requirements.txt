@@ -1,0 +1,14 @@
+# this is for a later project
+#asyncio
+#requests
+#bs4
+
+salsa20
+marshmallow-dataclass
+marshmallow-enum
+
+# testing
+sure
+unittest
+pytest-cov
+pylint-fail-under

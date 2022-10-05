@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Name: telempy
+Version: 0.1
+Summary: Get Grand Turismo telemetry data from the PlayStation console
+Author: Lucas Pettit
+Author-email: lucaspettit64@gmail.com
+License: MIT
+Requires-Python: >=3.7
+
+# TelemPy
+Python library for retrieving Grand Truismo telemetry data from the Playstation console.
