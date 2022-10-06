@@ -101,9 +101,6 @@ Because this is an unofficial API, the range expected min/max of each value is s
 *  int: `unused_0x93` always 0
 *  int: `unused_0xD4` always 0
 
-## Installation
-To install, run `pip install granturismo`
-
 ## Usage
 The main function is the Listener, which is a closing object. You can use a `with Listener(ip_address) as ...` clause to open and close the listener. 
 The Listener will spin up a background thread to maintain a heartbeat connection with the PlayStation, so it's important to always close the object.
@@ -154,3 +151,8 @@ if __name__ == '__main__':
     curses.nocbreak()
     curses.endwin()
 ```
+
+#References
+[Nenkai](https://github.com/Nenkai) is the original discoverer of this API and how to decrypt and communicate with it, as well as a significant amount of research into each value.
+
+[tarnheld](https://www.gtplanet.net/forum/threads/gt7-is-compatible-with-motion-rig.410728/page-4) for their work in identifying data values/ranges. 
