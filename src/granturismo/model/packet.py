@@ -92,6 +92,11 @@ class Packet:
     if suggested_gear == 15:
       suggested_gear = None
 
+    current_gear = Packet._get_int(b, 144, 1) & 15
+    if current_gear == 15:
+      current_gear = None
+
+
     lap_count = Packet._get_int(b, 116, 2)
     if lap_count == 65536:
       lap_count = None
@@ -183,7 +188,7 @@ class Packet:
       clutch=Packet._get_float(b, 244),
       clutch_engagement=Packet._get_float(b, 248),
       clutch_gearbox_rpm=Packet._get_float(b, 252),
-      current_gear=Packet._get_int(b, 144, 1) & 15,
+      current_gear=current_gear,
       suggested_gear=suggested_gear,
       gear_ratios=Packet._get_gear_ratios(b, 260),
       unused_0x93 = Packet._get_int(b, 147),

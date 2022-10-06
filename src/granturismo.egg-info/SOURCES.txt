@@ -3,7 +3,8 @@ pyproject.toml
 setup.cfg
 setup.py
 examples/quickstart.py
-examples/stream_car_position.py
+examples/stream_position.py
+examples/stream_suspension.py
 src/granturismo/__init__.py
 src/granturismo.egg-info/PKG-INFO
 src/granturismo.egg-info/SOURCES.txt
