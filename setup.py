@@ -22,6 +22,7 @@ setup(
     'Source Code': 'https://github.com/lucaspettit/telempy'
   },
   long_description=long_description,
+  long_description_content_type='text/markdown',
   license='MIT',
   packages=find_packages(where='src'),
   package_dir={'': 'src'},
