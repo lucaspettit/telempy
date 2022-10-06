@@ -1,0 +1,18 @@
+Metadata-Version: 2.1
+Name: granturismo
+Version: 0.0.
+Summary: Get Grand Turismo telemetry data from the PlayStation console
+Author: Lucas Pettit
+Author-email: lucaspettit64@gmail.com
+License: MIT
+Project-URL: Bug Tracker, https://github.com/lucaspettit/telempy/issues
+Project-URL: Source Code, https://github.com/lucaspettit/telempy
+Platform: Windows
+Platform: Linux
+Platform: Solaris
+Platform: Mac OS-X
+Platform: Unix
+Requires-Python: >=3.7
+
+# TelemPy
+Python library for retrieving Grand Truismo telemetry data from the Playstation console.

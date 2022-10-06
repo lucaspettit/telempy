@@ -1,6 +1,4 @@
-from src.model.packet import Packet
-from src.model.common import *
-import json
+from gt.model.common import *
 
 
 def vector2dict(v: Vector) -> dict:

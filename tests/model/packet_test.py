@@ -1,11 +1,8 @@
 from tests.test_base import TestBase
 from tests.helpers import packet2dict
-from model.packet import Packet
+from gt.model.packet import Packet
 from typing import Tuple
 import json
-import sure
-
-
 
 
 class PacketTest(TestBase):

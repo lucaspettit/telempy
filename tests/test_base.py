@@ -1,6 +1,6 @@
 from unittest import TestCase
-from unittest.mock import patch, MagicMock
-from utils import Settings
+from unittest.mock import MagicMock
+from gt.utils import Settings
 from typing import Dict
 
 

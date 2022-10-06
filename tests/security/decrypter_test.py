@@ -1,7 +1,6 @@
 from tests.test_base import TestBase
-from security import Decrypter as sut
+from gt.security import Decrypter as sut
 from typing import Tuple
-import sure
 
 
 class DecrypterTest(TestBase):

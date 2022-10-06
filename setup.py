@@ -1,44 +1,26 @@
+import os.path
+
 from setuptools import setup, find_packages
 from pathlib import Path
-
-# parse package and test requirements from requirements.txt
-with open('requirements.txt') as f:
-  # use f.read().splitlines() instead of f.readlines() so that the newline char gets removed automatically
- lines = f.read().splitlines()
-
-index = 0
-# populate package requirements, these are listed first
-package_requirements = []
-while index < len(lines):
-  line = lines[index]
-  index += 1
-  if not line:
-    continue
-  if line.lower().startswith('# test'):
-    break
-  package_requirements.append(line)
-
-# populate the test requirements, these are listed after # testing
-test_requirements = []
-while index < len(lines):
-  line = lines[index]
-  index += 1
-  if not line:
-    continue
-  test_requirements.append(line)
 
 
 # get long description from README
 with open('README.md') as f:
   long_description = f.read()
 
+package_requirements=['salsa20', 'marshmallow-dataclass', 'marshmallow-enum']
+test_requirements=['sure', 'unittest', 'pytest-cov', 'pylint-fail-under']
 
 setup(
-  name='telempy',
-  version=0.1,
+  name='granturismo',
+  version="0.0.",
   author='Lucas Pettit',
   author_email='lucaspettit64@gmail.com',
   description='Get Grand Turismo telemetry data from the PlayStation console',
+  project_urls={
+    'Bug Tracker': 'https://github.com/lucaspettit/telempy/issues',
+    'Source Code': 'https://github.com/lucaspettit/telempy'
+  },
   long_description=long_description,
   license='MIT',
   packages=find_packages(where='src'),
@@ -49,9 +31,26 @@ setup(
   test_command='test',
   test_suite='tests',
   python_requires='>=3.7',
+  platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
   clasifiiers=[
-    'Programming Language :: Python :: 3',
-    'Operating System :: Windows :: Linux :: POSIX :: MacOS'
+    'Development Status :: 3 - Alpha',
+    'License :: OSI Approved :: MIT License',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3 :: Only',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Operating System :: POSIX',
+    'Operating System :: Unix',
+    'Operating System :: Microsoft :: Windows',
+    'Operating System :: MacOS',
+    'Topic :: Software Development',
+    'Topic :: Games/Entertainment'
+    'Topic :: Games/Entertainment :: Simulation',
+    'Intended Audience :: Developers',
+    'Intended Audience :: Other Audience'
   ],
   install_requires=package_requirements,
   zip_safe=False
