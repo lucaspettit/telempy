@@ -50,11 +50,11 @@ class Listener(object):
 
     self._heartbeat_thread = threading.Thread(
       target=self._send_heartbeat,
-      #daemon=True,
       name='HeartbeatBackgroundThread')
 
   def __enter__(self):
     self.start()
+    return self
 
   def __exit__(self, exc_type, exc_val, exc_tb):
     self.close()
