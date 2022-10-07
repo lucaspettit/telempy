@@ -54,14 +54,7 @@ class Listener(object):
       name='HeartbeatBackgroundThread')
 
   def __enter__(self):
-    # connect to socket
-    self._sock = self._init_sock_()
-    self._sock_bounded = True
-    self._decrypter = Decrypter()
-
-    # start heartbeat thread
-    self._heartbeat_thread.start()
-    return self
+    self.start()
 
   def __exit__(self, exc_type, exc_val, exc_tb):
     self.close()
@@ -71,6 +64,16 @@ class Listener(object):
 
   def __del__(self):
     self.close()
+
+  def start(self):
+    # connect to socket
+    self._sock = self._init_sock_()
+    self._sock_bounded = True
+    self._decrypter = Decrypter()
+
+    # start heartbeat thread
+    self._heartbeat_thread.start()
+    return self
 
   def close(self):
     """

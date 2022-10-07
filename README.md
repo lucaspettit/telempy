@@ -1,6 +1,67 @@
 # GranTurismo
 This package wraps the Gran Turismo 7's unofficial telemetry API. By providing this module with you're PlayStation's IP address (as found in the menu) you will be able to retrieve packets containing telemetry data. 
 
+## Usage
+The main function is the Listener, which is a closing object. You can use a `with Listener(ip_address) as ...` clause to open and close the listener. 
+The Listener will spin up a background thread to maintain a heartbeat connection with the PlayStation, so it's important to always close the object.
+
+### Quickstart example
+Grab a single packet from Gran Turismo and print it
+```python
+from granturismo.intake import Listener
+import sys
+
+if __name__ == '__main__':
+  ip_address = sys.argv[1] # IP address to the PlayStation
+  
+  # Create a new Listener session and print the first packet that Gran Turismo sends.
+  with Listener(ip_address) as listener:
+    print(listener.get())
+```
+
+### Streaming data example
+Stream all incoming data from Gran Turismo and print it to the terminal
+```python
+from granturismo.intake import Listener
+from granturismo.model import Wheels
+import datetime as dt
+import time, sys
+import curses
+
+stdscr = curses.initscr()
+
+# This function is used to rewrite multiple lines on the terminal
+def report_suspension(wheels: Wheels) -> None:
+  pad = ' ' * 100
+  curr_time = dt.datetime.fromtimestamp(time.time()).isoformat()
+  stdscr.addstr(0, 0, f'[{curr_time}] Suspension Height{pad}')
+  stdscr.addstr(1, 0, f'\t{wheels.front_left.suspension_height:.3f}    {wheels.front_right.suspension_height:.3f}{pad}')
+  stdscr.addstr(2, 0, f'\t{wheels.rear_left.suspension_height:.3f}    {wheels.rear_right.suspension_height:.3f}{pad}')
+  stdscr.refresh()
+
+if __name__ == '__main__':
+  ip_address = sys.argv[1]
+
+  # To use the Listener session without a `with` clause, you'll need to call the `.start()` function. 
+  listener = Listener(ip_address)
+  listener.start()
+
+  try:
+    while True:
+      # get the latest packet from PlayStation
+      packet = listener.get()
+
+      # If the game isn't paused or in a loading state, we'll update the terminal with the latest suspension info.
+      if not packet.flags.loading_or_processing and not packet.flags.paused:
+        report_suspension(packet.wheels)
+  finally:
+    # If you don't use a `with` clause, then you'll need to close the session afterwords. Session will also successfully close with CTRL+C
+    listener.close()
+    curses.echo()
+    curses.nocbreak()
+    curses.endwin()
+```
+
 ## Data
 Because this is an unofficial API, the range expected min/max of each value is still unknown. As more effort is put into understanding this API, better information will be available. For now, here is what we know.
 *  int: `  packet_id`
@@ -101,58 +162,7 @@ Because this is an unofficial API, the range expected min/max of each value is s
 *  int: `unused_0x93` always 0
 *  int: `unused_0xD4` always 0
 
-## Usage
-The main function is the Listener, which is a closing object. You can use a `with Listener(ip_address) as ...` clause to open and close the listener. 
-The Listener will spin up a background thread to maintain a heartbeat connection with the PlayStation, so it's important to always close the object.
-
-### Quickstart example
-Grab a single packet from Gran Turismo and print it
-```python
-from granturismo.intake import Listener
-import sys
-
-if __name__ == '__main__':
-  ip_address = sys.argv[1]
-  with Listener(ip_address) as listener:
-    print(listener.get())
-```
-
-### Streaming data example
-Stream all incoming data from Gran Turismo and print it to the terminal
-```python
-from granturismo.intake import Listener
-from granturismo.model import Wheels
-import datetime as dt
-import time, sys
-import curses
-
-stdscr = curses.initscr()
-
-def report_suspension(wheels: Wheels) -> None:
-  pad = ' ' * 100
-  curr_time = dt.datetime.fromtimestamp(time.time()).isoformat()
-  stdscr.addstr(0, 0, f'[{curr_time}] Suspension Height{pad}')
-  stdscr.addstr(1, 0, f'\t{wheels.front_left.suspension_height:.3f}    {wheels.front_right.suspension_height:.3f}{pad}')
-  stdscr.addstr(2, 0, f'\t{wheels.rear_left.suspension_height:.3f}    {wheels.rear_right.suspension_height:.3f}{pad}')
-  stdscr.refresh()
-
-if __name__ == '__main__':
-  ip_address = sys.argv[1]
-  listener = Listener(ip_address)
-
-  try:
-    while True:
-      packet = listener.get()
-
-      if not packet.flags.loading_or_processing and not packet.flags.paused:
-        report_suspension(packet.wheels)
-  finally:
-    curses.echo()
-    curses.nocbreak()
-    curses.endwin()
-```
-
-#References
+## References
 [Nenkai](https://github.com/Nenkai) is the original discoverer of this API and how to decrypt and communicate with it, as well as a significant amount of research into each value.
 
 [tarnheld](https://www.gtplanet.net/forum/threads/gt7-is-compatible-with-motion-rig.410728/page-4) for their work in identifying data values/ranges. 
