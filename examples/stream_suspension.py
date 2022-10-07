@@ -16,7 +16,10 @@ def report_suspension(wheels: Wheels) -> None:
 
 if __name__ == '__main__':
   ip_address = sys.argv[1]
+
+  # start a listener session without using a `with` clause
   listener = Listener(ip_address)
+  listener.start()
 
   try:
     while True:
@@ -25,6 +28,8 @@ if __name__ == '__main__':
       if not packet.flags.loading_or_processing and not packet.flags.paused:
         report_suspension(packet.wheels)
   finally:
+    # If you don't use a `with` clause, then you'll need to close the session afterwords. Session will also successfully close with CTRL+C
+    listener.close()
     curses.echo()
     curses.nocbreak()
     curses.endwin()
