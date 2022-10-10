@@ -78,10 +78,14 @@ class Packet:
     if last_lap_time == 4294967295:
       last_lap_time = None
 
-    best_lap_time = Packet._get_int(b, 128) if last_lap_time is not None else None
+    best_lap_time = Packet._get_int(b, 120)
+    if best_lap_time == 4294967295:
+      best_lap_time = None
 
     start_position = Packet._get_int(b, 132) >> 4
-    if start_position == 268435455:
+    # usually the start position is 268435455 (b'11111111 11111111 11111111 11111111')
+    # but sometimes it's 4096 (b'00000000 00000000 00001111 11111111')
+    if start_position >= 4096:
       start_position = None
 
     cars_in_race = Packet._get_int(b, 132) & 255
@@ -98,10 +102,10 @@ class Packet:
 
 
     lap_count = Packet._get_int(b, 116, 2)
-    if lap_count == 65536:
+    if lap_count == 65535:
       lap_count = None
     laps_in_race = Packet._get_int(b, 118, 2)
-    if laps_in_race == 65536:
+    if laps_in_race == 65535:
       laps_in_race = None
 
     return Packet(
@@ -191,7 +195,7 @@ class Packet:
       current_gear=current_gear,
       suggested_gear=suggested_gear,
       gear_ratios=Packet._get_gear_ratios(b, 260),
-      unused_0x93 = Packet._get_int(b, 147),
+      unused_0x93 = Packet._get_int(b, 147, 1),
       unused_0xD4 = Packet._get_int(b, 212, 32)
     )
 
