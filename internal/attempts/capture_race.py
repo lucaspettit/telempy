@@ -3,7 +3,7 @@ from granturismo.model import Packet
 from granturismo.utils.settings import Settings
 from typing import Dict
 from pprint import pprint
-from states.state import States
+from internal.game_state.states import States
 import datetime as dt
 import json
 
