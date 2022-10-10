@@ -87,7 +87,7 @@ class State(object):
 
 class States(object):
   def __init__(self):
-    self._state_file = '/Users/lpettit/Desktop/Luke/Code/telempy/data/states/states.json'
+    self._state_file = '/data/states/states.json'
     with open(self._state_file) as f:
       state_dict = json.load(f)
 
