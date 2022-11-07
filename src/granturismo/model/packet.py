@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List
+from typing import List, Optional
 from marshmallow_dataclass import dataclass as marshmallow_dataclass
 import struct
 import math
@@ -17,11 +17,12 @@ from granturismo.model.common import (
 @marshmallow_dataclass(frozen=True)
 class Packet:
   packet_id: int
+  received_time: float
   car_id: int
-  lap_count: int or None
-  laps_in_race: int or None
-  best_lap_time: int or None
-  last_lap_time: int or None
+  lap_count: Optional[int]
+  laps_in_race: Optional[int]
+  best_lap_time: Optional[int]
+  last_lap_time: Optional[int]
 
   position: Vector
   velocity: Vector
@@ -45,8 +46,8 @@ class Packet:
   oil_temperature: float
   water_temperature: float
   time_of_day: int
-  start_position: int or None
-  cars_in_race: int or None
+  start_position: Optional[int]
+  cars_in_race: Optional[int]
   rpm_alert: Bounds
   car_max_speed: float or int # this is a 2-byte value, so cannot convert to float natively
   transmission_max_speed: float
@@ -56,18 +57,19 @@ class Packet:
   clutch_engagement: float
   clutch_gearbox_rpm: float
   current_gear: int
-  suggested_gear: int or None
+  suggested_gear: Optional[int]
   gear_ratios: List[float]
 
   unused_0x93: int
   unused_0xD4: int # location 212 or 0xD4 in hex
 
   @staticmethod
-  def from_bytes(b: bytearray) -> Packet:
+  def from_bytes(b: bytearray, received_time: float) -> Packet:
     """
     Constructor for Packet object.
     This will unpack the buffer and return a new instance of Packet
     :param b: The decrypted buffer from PlayStation
+    :param received_time: The time the packet was received, before any decoding or deciphering
     :return: new instance of Packet class
     """
     token = b[:4][::-1].decode('ascii')
@@ -110,6 +112,7 @@ class Packet:
 
     return Packet(
       packet_id=Packet._get_int(b, 112),
+      received_time=received_time,
       car_id=Packet._get_int(b, 292),
       lap_count=lap_count,
       laps_in_race=laps_in_race,

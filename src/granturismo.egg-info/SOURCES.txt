@@ -13,7 +13,7 @@ src/granturismo.egg-info/not-zip-safe
 src/granturismo.egg-info/requires.txt
 src/granturismo.egg-info/top_level.txt
 src/granturismo/intake/__init__.py
-src/granturismo/intake/listener.py
+src/granturismo/intake/feed.py
 src/granturismo/maps/__init__.py
 src/granturismo/maps/map.py
 src/granturismo/model/__init__.py

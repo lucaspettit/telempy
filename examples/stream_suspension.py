@@ -1,4 +1,4 @@
-from granturismo.intake import Listener
+from granturismo import Feed
 from granturismo.model import Wheels
 import datetime as dt
 import time, sys
@@ -18,13 +18,13 @@ if __name__ == '__main__':
   ip_address = sys.argv[1]
 
   # To use the Listener session without a `with` clause, you'll need to call the `.start()` function.
-  listener = Listener(ip_address)
-  listener.start()
+  feed = Feed(ip_address)
+  feed.start()
 
   try:
     while True:
       # get the latest packet from PlayStation
-      packet = listener.get()
+      packet = feed.get()
 
       # If the game isn't paused or in a loading state, we'll update the terminal with the latest suspension info.
       if not packet.flags.loading_or_processing and not packet.flags.paused:
@@ -34,4 +34,4 @@ if __name__ == '__main__':
     curses.echo()
     curses.nocbreak()
     curses.endwin()
-    listener.close()
+    feed.close()

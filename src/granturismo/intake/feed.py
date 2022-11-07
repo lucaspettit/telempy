@@ -4,7 +4,7 @@ import threading
 import signal
 from granturismo.model import Packet
 from granturismo.security import Decrypter
-from typing import Dict, Union, Optional
+from queue import Queue
 
 class SocketNotBoundError(Exception):
   pass
@@ -16,7 +16,7 @@ class UnknownStatusError(Exception):
   pass
 
 
-class Listener(object):
+class Feed(object):
   _HEARTBEAT_PORT = 33739
   _BIND_PORT = 33740
   _BUFFER_LEN = 0x128  # in bytes
@@ -30,16 +30,16 @@ class Listener(object):
     you are done using this object.
     :param addr: Address to the PlayStation so we can send a heartbeat
     """
+    # set this first so that if we fail to connect to socket we wont fail the closing functions
+    self._terminate_event = threading.Event()
+
     if not isinstance(addr, str):
       raise TypeError('`addr` must be a string')
+
     self._addr = addr
-    self._last_timeout = None
     self._sock: socket.socket = None
     self._sock_bounded = False
     self._decrypter: Decrypter = False
-
-    # set this first so that if we fail to connect to socket we wont fail the closing functions
-    self._terminate_event = threading.Event()
 
     # setup signal handlers so we can make sure we close the socket and kill daemon threads properly
     for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGQUIT, signal.SIGABRT):
@@ -48,9 +48,15 @@ class Listener(object):
         signal.getsignal(sig)()
       signal.signal(sig, kill)
 
+    self._packet_queue = Queue()
+    self._packet_lock = threading.Lock()
     self._heartbeat_thread = threading.Thread(
       target=self._send_heartbeat,
-      name='HeartbeatBackgroundThread')
+      name='HeartbeatThread')
+    self._receiver_thread = threading.Thread(
+      target=self._get,
+      name='ReceiverThread'
+    )
 
   def __enter__(self):
     self.start()
@@ -73,6 +79,7 @@ class Listener(object):
 
     # start heartbeat thread
     self._heartbeat_thread.start()
+    self._receiver_thread.start()
     return self
 
   def close(self):
@@ -85,30 +92,49 @@ class Listener(object):
     if self._heartbeat_thread.is_alive():
       self._heartbeat_thread.join()
 
-  def get(self, timeout: float=None) -> Packet:
+  def get(self) -> Packet:
     """
     Waits for the next packet to be sent from PlayStation, decrypts, and unpacks it into a Packet object.
-    :param timeout: [Optional] (float) Time to wait in seconds before throwing TimeoutException
     :return: Packet containing latest telemetry data
     """
-    if timeout is not None and not isinstance(timeout, float):
-      raise TypeError('`timeout` must be a float')
-
     if not self._sock_bounded:
-      raise SocketNotBoundError('Socket is not bounded')
+      raise SocketNotBoundError('Not started. Call `.start` or `with Listener(your_ip_addr)` before calling `.get`')
 
-    if timeout != self._last_timeout:
-      self._sock.settimeout(timeout)
-      self._last_timeout = timeout
-    try:
-      data, _ = self._sock.recvfrom(Listener._BUFFER_LEN)
-    except socket.timeout:
-      raise TimeoutError(f'Timeout after {timeout}s. No massages received on port {self._BIND_PORT}')
-    except Exception as e:
-      raise ReadError(f'Failed to read message on port {self._BIND_PORT}')
+    self._packet_lock.acquire()
+    if not self._packet_queue.empty():
+      packet = self._packet_queue.get_nowait()
+      self._packet_queue.task_done()
+      self._packet_lock.release()
+      return packet
     else:
+      self._packet_lock.release()
+      return self._packet_queue.get(block=True)
+
+  def _get(self) -> None:
+    while not self._terminate_event.is_set():
+      try:
+        data, _ = self._sock.recvfrom(Feed._BUFFER_LEN)
+        received_time = time.time()
+
+        # breaking early so unit tests don't throw annoying error
+        if self._terminate_event.is_set():
+          break
+
+      except Exception as e:
+        raise ReadError(f'Failed to read message on port {self._BIND_PORT}: {e}')
+
       data = self._decrypter.decrypt(data)
-      return Packet.from_bytes(data)
+      packet = Packet.from_bytes(data, received_time)
+
+      # we need to wrap in a lock so we can insure the queue contains at most 1 item.
+      self._packet_lock.acquire()
+      try:
+        if not self._packet_queue.empty():
+          self._packet_queue.get_nowait()
+          self._packet_queue.task_done()
+        self._packet_queue.put_nowait(packet)
+      finally:
+        self._packet_lock.release()
 
   def _send_heartbeat(self) -> None:
     last_heartbeat = 0
@@ -128,6 +154,6 @@ class Listener(object):
     # Enable immediate reuse of IP address
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     # Bind the socket to the port
-    sock.bind(('', Listener._BIND_PORT))
+    sock.bind(('', Feed._BIND_PORT))
 
     return sock

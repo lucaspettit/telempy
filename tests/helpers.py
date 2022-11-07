@@ -1,4 +1,5 @@
-from gt.model.common import *
+from granturismo.model.common import *
+from granturismo.model import Packet
 
 
 def vector2dict(v: Vector) -> dict:
@@ -55,6 +56,7 @@ def dict2flags(d: dict) -> Flags:
 def packet2dict(p: Packet) -> dict:
   return {
     'packet_id': p.packet_id,
+    'retrieved_time': p.received_time,
     'car_id': p.car_id,
     'lap_count': p.lap_count,
     'laps_in_race': p.laps_in_race,

@@ -1,149 +1,127 @@
 from granturismo.intake import Listener
-from granturismo.model import Packet
+from granturismo.model.common import Vector
 from granturismo.utils.settings import Settings
-from typing import Dict
-from pprint import pprint
-from internal.game_state.states import States
-import datetime as dt
+from internal.game_state.states import States, State
 import json
 
 
-tracked_vars: dict = None
-packet_count: int = 0
 settings = Settings()
+prev_state: State = None
 
 
-def build_tracked_vars(p: Packet) -> dict:
-  return {
-    'best_lap_time': str(dt.timedelta(seconds=p.best_lap_time / 1000)) if p.best_lap_time is not None else None,
-    'last_lap_time': str(dt.timedelta(seconds=p.last_lap_time / 1000)) if p.last_lap_time is not None else None,
-    'cars_in_race': p.cars_in_race,
-    'start_position': p.start_position,
-    'lap_count': p.lap_count,
-    'laps_in_race': p.laps_in_race,
-    'loading_or_processing': p.flags.loading_or_processing,
-    'gas_capacity': p.gas_capacity
+def save_packets(car_id, packets):
+  track_name = input('track name     : ')
+  layout =     input('layout   [null]: ')
+  car_name =   input('car name [null]: ')
+  event =      input('event    [null]: ') # <license name> or <ce-{id}>
+
+  filename = track_name + (f' - {layout}' if layout else '') + '.json'
+  filename = output_dir.joinpath(filename)
+  content = {
+    'track': {
+      'id': len(list(output_dir.glob('*.json'))),
+      'name': track_name,
+      'layout': layout if layout else None,
+      'event': event
+    },
+    'car': {
+      'id': car_id,
+      'name': car_name
+    },
+    'packets': packets
   }
 
-def compare(a: dict, b: dict) -> Dict[str, str]:
-  output = {}
-  for k, v in a.items():
-    if isinstance(v, dict):
-      res = compare(v, b[k])
-      for _k, _v in res.items():
-        output[f'{k}.{_k}'] = _v
-    else:
-      if v != b[k]:
-        output[k] = f'{b[k]} -> {v}'
-  return output
+  print(f'Saving to [{filename.name}]')
+  with open(output_dir.joinpath(filename), 'w') as f:
+    json.dump(content, f)
 
 
-def get_state(packet: Packet) -> str:
-  global tracked_vars, packet_count
-  new_vars = build_tracked_vars(packet)
-  if tracked_vars is None:
-    packet_count += 1
-    tracked_vars = new_vars
-    pprint(tracked_vars)
-  else:
-    diff = compare(new_vars, tracked_vars)
-    if len(diff) > 0:
+def get_state(packet):
+  global prev_state
+  state = states.get_matching_states(packet)
 
-      tracked_vars = new_vars
-      print('-' * 100)
-      print(f'COUNT={packet_count}')
-      pprint(diff)
-      packet_count = 0
-    else:
-      packet_count += 1
-  # unused = packet.unused_0x93.to_bytes(4, 'little')
-  # unused = struct.unpack('f', unused)
-  # print(f'unused_0x93={unused}')
+  _prev_state = prev_state
+  if prev_state is None or prev_state.name != state.name:
+    prev_state = state
+  if state.name == 'UNKNOWN' and prev_state != state:
+    schema = State.Schema().dump(state)
+    keys = [
+      'best_lap_time',
+      'last_lap_time',
+      'lap_count',
+      'laps_in_race',
+      'cars_in_race',
+      'start_position',
+      'car_on_track',
+      'loading_or_processing',
+      'paused'
+    ]
+    for k in keys:
+      v = schema[k]
+      if not v is None:
+        if k in {'loading_or_processing', 'car_on_track', 'paused'}:
+          v = v['value'] == 1
+        else:
+          v = v['value']
+      print(f'  {k}: {v}')
+    print('-' * 50)
+  return state
 
 
 if __name__ == '__main__':
   from pathlib import Path
+  import sys
+
   states = States()
   prev_state = None
-  non_menu = {
-    'RACE_MENU',
-    'BEFORE_RACE_START',
-    'RACING',
-    'AFTER_RACE_END'
-    }
-  racing = {'RACING', 'PAUSED'}
+  racing = {'BEFORE_RACE_START', 'RACING', 'AFTER_RACE_END', 'PAUSED', 'LOADING', 'DEMONSTRATION', 'BEFORE_TIME_TRIAL_START', 'TIME_TRIAL_RACING'}
+  racing_capture_mode = {'BEFORE_RACE_START', 'RACING', 'AFTER_RACE_END', 'DEMONSTRATION', 'BEFORE_TIME_TRIAL_START', 'TIME_TRIAL_RACING'}
 
   output_dir = Path(settings.project_directory().joinpath('data', 'trackDataRaw'))
   output_dir.mkdir(parents=True, exist_ok=True)
-  attempt = len(list(output_dir.glob('*.json')))
+  track_id = len(list(output_dir.glob('*.json')))
   packets = []
   car_id = None
+
+  previous_state = ''
+  previous_packet = None
   capture = False
+  capture_count = 0
 
-  with Listener('192.168.1.207') as listener:
+  with Listener(sys.argv[1]) as listener:
     while True:
-      #get_state(listener.get())
-
       packet = listener.get()
-      if packet.flags.paused:
-        name = 'PAUSED'
-      elif packet.flags.loading_or_processing:
-        name = 'LOADING'
-      else:
-        matches = states.get_matching_states(packet)
-        if len(matches) > 0:
-          name = [m.name for m in matches][0]
-          if name not in non_menu:
-            name = 'MENU'
-        else:
-          name = 'N/A'
+      state = get_state(packet)
 
-      if prev_state != name:
-        prev_state = name
-        print(name)
-        #if name == 'N/A':
-        #  print(json.dumps(build_tracked_vars(packet), indent=4))
+      if not previous_state:
+        previous_state = state.name
+      elif previous_state != state.name:
+        print(f'{state.name} {capture_count}')
+        capture_count = 0
+        previous_state = state.name
+      capture_count += 1
 
-      if not capture and name == 'RACING':
+      if not capture and state.name in {'BEFORE_RACE_START', 'BEFORE_TIME_TRIAL_START'}:
         capture = True
-        print('Capture started')
-      elif capture and name not in racing:
-          capture = False
-          print('Capture ended')
+        print('  Capture started')
 
-          track_name = input('track name? ')
-          layout = input('layout? ')
-          car_name = input('car name? ')
+      elif capture and state.name not in racing:
+        capture = False
+        print('  Capture ended')
+        save_packets(car_id, packets)
+        packets = []
+        car_id = None
 
-          filename = track_name + (f' - {layout}' if layout else '') + '.json'
-          filename = output_dir.joinpath(filename)
-          content = {
-            'track': {
-              'id': len(list(output_dir.glob('*.json'))),
-              'name': track_name,
-              'layout': layout if layout else None
-            },
-            'car': {
-              'id': car_id,
-              'name': car_name
-            },
-            'packets': packets
-          }
-
-          print(f'Saving to [{filename.name}]')
-          with open(output_dir.joinpath(filename), 'w') as f:
-            json.dump(content, f)
-          packets = []
-          car_id = None
-          car_name = None
-      elif capture and name == 'RACING':
+      elif capture and state.name in racing_capture_mode:
           if car_id is None:
             car_id = packet.car_id
           packets.append({
-            'position': packet.position,
+            'position': Vector.Schema().dump(packet.position),
             'speed': packet.car_speed,
             'brake': packet.brake,
             'throttle': packet.throttle,
             'clutch': packet.clutch,
             'currentGear': packet.current_gear
           })
+
+      previous_packet = packet

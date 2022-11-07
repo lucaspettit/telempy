@@ -1,13 +1,14 @@
 from tests.test_base import TestBase
-from gt.security import Decrypter as sut
+from granturismo.security import Decrypter as sut
 from typing import Tuple
+import sure
 
 
 class DecrypterTest(TestBase):
   def get_input_output(self) -> Tuple[bytearray, bytearray]:
     with open(self._settings.project_directory().joinpath('tests', 'data', 'rawUdpMessage1.bytes'), 'rb') as f:
       input_packet = bytearray(f.read())
-    with open(self._settings.project_directory().joinpath('tests', 'data','decryptedUdpMessage1.bytes'), 'rb') as f:
+    with open(self._settings.project_directory().joinpath('tests', 'data', 'decryptedUdpMessage1.bytes'), 'rb') as f:
       output_packet = bytearray(f.read())
     return input_packet, output_packet
 

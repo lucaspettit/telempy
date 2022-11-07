@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: granturismo
-Version: 0.0.9
+Version: 0.1.1
 Summary: Get Grand Turismo telemetry data from the PlayStation console
 Author: Lucas Pettit
 Author-email: lucaspettit64@gmail.com
@@ -23,23 +23,25 @@ The main function is the Listener, which is a closing object. You can use a `wit
 The Listener will spin up a background thread to maintain a heartbeat connection with the PlayStation, so it's important to always close the object.
 
 ### Quickstart example
-Grab a single packet from Gran Turismo and print it
+Grab a single packet from GranTurismo and print it. </br>
+You can run this by calling `python3 examples/quickstart.py <your PS's IP address>`
 ```python
-from granturismo.intake import Listener
+from granturismo import Feed 
 import sys
 
 if __name__ == '__main__':
   ip_address = sys.argv[1] # IP address to the PlayStation
   
   # Create a new Listener session and print the first packet that Gran Turismo sends.
-  with Listener(ip_address) as listener:
-    print(listener.get())
+  with Feed(ip_address) as feed:
+    print(feed.get())
 ```
 
-### Streaming data example
-Stream all incoming data from Gran Turismo and print it to the terminal
+### Streaming suspension data to the console
+Stream all incoming data from Gran Turismo and print it to the terminal</br>
+You can run this by calling `python3 examples/stream_suspension.py <your PS's IP address>`
 ```python
-from granturismo.intake import Listener
+from granturismo import Feed 
 from granturismo.model import Wheels
 import datetime as dt
 import time, sys
@@ -59,13 +61,13 @@ if __name__ == '__main__':
   ip_address = sys.argv[1]
 
   # To use the Listener session without a `with` clause, you'll need to call the `.start()` function. 
-  listener = Listener(ip_address)
-  listener.start()
+  feed = Feed(ip_address)
+  feed.start()
 
   try:
     while True:
       # get the latest packet from PlayStation
-      packet = listener.get()
+      packet = feed.get()
 
       # If the game isn't paused or in a loading state, we'll update the terminal with the latest suspension info.
       if not packet.flags.loading_or_processing and not packet.flags.paused:
@@ -75,12 +77,68 @@ if __name__ == '__main__':
     curses.echo()
     curses.nocbreak()
     curses.endwin()
-    listener.close()
+    feed.close()
+```
+
+###Streaming position data directly to a plot
+Stream the car's position directly to a plot window. Here we'll plot the x and z axis, which track the horizontal plane. We also add a "heatmap" color to the plot to show the car's speed compared to it's max potential speed.</br>
+You can run this by calling `python3 examples/stream_position.py <your PS's IP address>` 
+```python
+import sys
+from granturismo import Feed
+import matplotlib.pyplot as plt
+
+if __name__ == '__main__':
+  ip_address = sys.argv[1]
+
+  # setup the plot styling
+  plt.ion() # allows us to continue to update the plot
+  fig, ax = plt.subplots(figsize=(8, 8))
+  ax.axis('off') # hides the black border around the axis.
+  plt.xticks([])
+  plt.yticks([])
+
+  # this will be the previous x and z points. We don't want to re-plot all our points because 
+  # that'll be too slow and the graph cant keep up with our stream. We're only gonna plot the newest segment.
+  px, pz = None, None
+
+  count = 0
+  with Feed(ip_address) as feed:
+    while True:
+      count += 1
+      # only update graph every 10th of a second just cuz it doesn't matter for us, and it's easier on the computer
+      # but we still need to grab the packet even if we're not using it
+      packet = feed.get()
+
+      # note, we're negating z so the map will appear int he same orientation as it does in the game's minimap
+      x, z = packet.position.x, -packet.position.z
+      if px is None:
+        px, pz = x, z
+        continue
+
+      # here we're getting the ratio of how fast the car's going compared to it's max speed.
+      # we're multiplying by 3 to boost the colorization range.
+      speed = min(1, packet.car_speed / packet.car_max_speed) * 3
+      # Now use the "speed" ratio to select the color from the Matplotlib pallet
+      color = plt.cm.plasma(speed)
+
+      # plot the current step
+      plt.plot([px, x], [pz,  z], color=color)
+
+      # set the aspect ratios to be equal for x/z axis, this way the map doesn't look skewed
+      plt.gca().set_aspect('equal', adjustable='box')
+
+      # pause for a freakishly shot amount of time. We need a pause so that it'll trigger a graph update
+      plt.pause(0.00000000000000000001)
+
+      # set the previous (x, z) to the current (x, z)
+      px, pz = x, z
 ```
 
 ## Data
 Because this is an unofficial API, the range expected min/max of each value is still unknown. As more effort is put into understanding this API, better information will be available. For now, here is what we know.
 *  int: `  packet_id`
+*  float: `received_time` the timestamp when the packet was received, before any decrypting or processing.  
 *  int: `  car_id` cars with more than 8 gears will overwrite this value with a gear ratio
 *  Optional(int): `lap_count` None if not in race
 *  Optional(int): `laps_in_race` None if not in race

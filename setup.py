@@ -1,5 +1,3 @@
-import os.path
-
 from setuptools import setup, find_packages
 from pathlib import Path
 
@@ -13,7 +11,7 @@ test_requirements=['sure', 'unittest', 'pytest-cov', 'pylint-fail-under']
 
 setup(
   name='granturismo',
-  version="0.0.9",
+  version="0.1.1",
   author='Lucas Pettit',
   author_email='lucaspettit64@gmail.com',
   description='Get Grand Turismo telemetry data from the PlayStation console',
@@ -34,7 +32,7 @@ setup(
   python_requires='>=3.7',
   platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
   clasifiiers=[
-    'Development Status :: 3 - Alpha',
+    'Development Status :: 4 - Beta',
     'License :: OSI Approved :: MIT License',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3 :: Only',

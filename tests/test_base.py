@@ -1,11 +1,16 @@
 from unittest import TestCase
-from unittest.mock import MagicMock
-from gt.utils import Settings
-from typing import Dict
+from unittest.mock import MagicMock, Mock
+from granturismo.utils import Settings
+from typing import Union
 
 
 class TestBase(TestCase):
   _settings = Settings()
 
-  def unpack_mocks(self, *mocks) -> Dict[str, MagicMock]:
-    raise NotImplemented()
+  @staticmethod
+  def unpack_mocks(*mocks) -> dict:
+      return {m._extract_mock_name(): m for m in mocks}
+
+  @staticmethod
+  def get_method_call_names(mock: Union[Mock, MagicMock]) -> [str]:
+      return list(map(lambda x: x[0], mock.method_calls))
